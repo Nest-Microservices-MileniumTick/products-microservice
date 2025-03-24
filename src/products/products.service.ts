@@ -1,0 +1,68 @@
+import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
+import { PrismaClient } from '@prisma/client';
+import { PaginationDto } from 'src/common';
+
+@Injectable()
+export class ProductsService extends PrismaClient implements OnModuleInit {
+  private readonly logger = new Logger('ProductsService')
+
+  async onModuleInit() {
+    await this.$connect()
+    this.logger.log('Database Connected')
+  }
+
+  async create(createProductDto: CreateProductDto) {
+    return await this.product.create({
+      data: createProductDto
+    });
+  }
+
+  async findAll(paginationDto: PaginationDto) {
+    const { page, limit } = paginationDto
+
+    const records = await this.product.count({where:{deletedAt: null}})
+    const lastPage = Math.ceil(records / limit)
+
+    return {
+      data: await this.product.findMany({
+        skip: (page - 1) * limit,
+        take: limit,
+        where: {deletedAt: null}
+      }),
+      meta: {
+        page,
+        records,
+        lastPage
+      }
+    }
+  }
+
+  async findOne(id: number) {
+    const product = await this.product.findUnique({
+      where: { id, deletedAt: null }
+    });
+
+    if(!product) throw new NotFoundException(`Product with id #${id} not exist`);
+
+    return product;
+  }
+
+  async update(id: number, updateProductDto: UpdateProductDto) {
+    await this.findOne(id)
+
+    const {id:_, ...data} = updateProductDto
+
+    return this.product.update({
+      data,
+      where: {id}
+    });
+  }
+
+  async remove(id: number) {
+    await this.findOne(id)
+
+    return this.product.update({where: {id}, data: {deletedAt: new Date()}});
+  }
+}
