@@ -9,7 +9,7 @@ const options = {
 
 for (let j = 0; j < 50; j++) {
   setTimeout(() => {
-    for (let i = 0; i < 10000; i++) {
+    for (let i = 0; i < 100; i++) {
       fetch('http://localhost:3000/api/products', options)
         .then((response) => response.json())
         .then((response) => console.log(response))
